@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AES暗号化/復号化ツール</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    section { margin-bottom: 40px; }
+    label, input, button { margin: 10px 0; display: block; }
+    textarea { width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>AES暗号化/復号化ツール</h1>
+
+  <!-- 暗号化セクション -->
+  <section>
+    <h2>暗号化</h2>
+    <form id="encryptForm">
+      <label for="file">暗号化するファイルを選択:</label>
+      <input type="file" id="file" name="file" required />
+
+      <label for="iv">IVを指定する整数値（0-255）:</label>
+      <input type="number" id="iv" name="iv" min="0" max="255" required />
+
+      <button type="submit">暗号化</button>
+    </form>
+
+    <div id="encryptResults" style="display: none;">
+      <p><strong>シードフレーズ:</strong></p>
+      <textarea id="seedPhrase" rows="3" readonly></textarea>
+      
+      <p><strong>QRコード:</strong></p>
+      <img id="qrCodeImage" alt="QRコード" />
+      
+      <p><strong>暗号化データ (Base64):</strong></p>
+      <a id="downloadLink" href="#" download>ダウンロード</a>
+    </div>
+  </section>
+
+  <!-- 復号化セクション -->
+  <section>
+    <h2>復号化</h2>
+    <form id="decryptForm">
+      <label for="encryptedFile">暗号化されたファイルを選択:</label>
+      <input type="file" id="encryptedFile" name="file" required />
+
+      <label for="ivDecrypt">IVを指定する整数値（0-255）:</label>
+      <input type="number" id="ivDecrypt" name="iv" min="0" max="255" required />
+
+      <label for="seedPhraseInput">シードフレーズを入力:</label>
+      <textarea id="seedPhraseInput" rows="3" name="seedPhrase" required></textarea>
+
+      <button type="submit">復号化</button>
+    </form>
+
+    <div id="decryptResults" style="display: none;">
+      <p><strong>復号化されたファイル:</strong></p>
+      <a id="decryptDownloadLink" href="#" download>ダウンロード</a>
+    </div>
+  </section>
+
+  <script>
+    // 暗号化処理
+    document.getElementById("encryptForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const fileInput = document.getElementById("file");
+      const ivInput = document.getElementById("iv");
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("ivValue", ivInput.value);
+
+      const response = await fetch("/encrypt", { method: "POST", body: formData });
+
+      if (response.ok) {
+        const data = await response.json();
+        document.getElementById("seedPhrase").value = data.seedPhrase;
+        document.getElementById("qrCodeImage").src = data.qrCodeUrl;
+        document.getElementById("downloadLink").href = data.downloadUrl;
+        document.getElementById("encryptResults").style.display = "block";
+      } else {
+        alert("暗号化に失敗しました。");
+      }
+    });
+
+    // 復号化処理
+    document.getElementById("decryptForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const fileInput = document.getElementById("encryptedFile");
+      const ivInput = document.getElementById("ivDecrypt");
+      const seedPhraseInput = document.getElementById("seedPhraseInput");
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("ivValue", ivInput.value);
+      formData.append("seedPhrase", seedPhraseInput.value);
+
+      const response = await fetch("/decrypt", { method: "POST", body: formData });
+
+      if (response.ok) {
+        const data = await response.json();
+        document.getElementById("decryptDownloadLink").href = data.downloadUrl;
+        document.getElementById("decryptResults").style.display = "block";
+      } else {
+        alert("復号化に失敗しました。");
+      }
+    });
+  </script>
+</body>
+</html>
+
